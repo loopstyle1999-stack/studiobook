@@ -1,4 +1,4 @@
-﻿[project]
+[project]
 name = "studiobook"
 version = "0.1.0"
 description = "Self-hosted booking and membership management for small studios (yoga, pilates, dance, training)."
