@@ -1,10 +1,10 @@
-[project]
+﻿[project]
 name = "studiobook"
 version = "0.1.0"
 description = "Self-hosted booking and membership management for small studios (yoga, pilates, dance, training)."
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["Flask>=3.0"]
 
 [project.scripts]
