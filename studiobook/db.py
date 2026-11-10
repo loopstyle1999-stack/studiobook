@@ -19,6 +19,12 @@ CREATE TABLE IF NOT EXISTS bookings (
     class_id INTEGER NOT NULL REFERENCES classes(id),
     UNIQUE (member_id, class_id)
 );
+CREATE TABLE IF NOT EXISTS waitlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER NOT NULL REFERENCES members(id),
+    class_id INTEGER NOT NULL REFERENCES classes(id),
+    UNIQUE (member_id, class_id)
+);
 """
 
 

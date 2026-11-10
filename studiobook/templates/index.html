@@ -15,7 +15,7 @@
 {% for c in classes %}
 <div class="card">
   <div><strong>{{ c.title }}</strong><br>{{ c.starts_at }}</div>
-  <div class="{{ 'full' if c.seats_left == 0 }}">{{ c.seats_left }} / {{ c.capacity }} seats left</div>
+  <div class="{{ 'full' if c.seats_left == 0 }}">{{ c.seats_left }} / {{ c.capacity }} seats left{% if c.seats_left == 0 and c.waitlist_size %}<br>{{ c.waitlist_size }} on waitlist{% endif %}</div>
 </div>
 {% else %}
 <p>No classes yet. Add one with <code>POST /api/classes</code> (see README).</p>

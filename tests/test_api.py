@@ -23,7 +23,7 @@ class StudioBookTests(unittest.TestCase):
         m, c = self.member(credits=1), self.klass()
         r = self.client.post("/api/bookings", json={"member_id": m, "class_id": c})
         self.assertEqual(r.status_code, 201)
-        self.assertEqual(self.client.delete(f"/api/bookings/{r.json['id']}", headers=self.auth).status_code, 204)
+        self.assertEqual(self.client.delete(f"/api/bookings/{r.json['id']}", headers=self.auth).status_code, 200)
         # credit refunded: adding 1 more credit should give 2 in total
         self.assertEqual(self.client.post(f"/api/members/{m}/credits", json={"amount": 1}, headers=self.auth).json["credits"], 2)
 
@@ -75,6 +75,66 @@ class StudioBookTests(unittest.TestCase):
     def test_admin_disabled_without_password(self):
         client = create_app(":memory:", admin_password="").test_client()
         self.assertEqual(client.post("/api/classes", json={}).status_code, 503)
+
+    # --- waitlist ---
+    def book(self, m, c):
+        return self.client.post("/api/bookings", json={"member_id": m, "class_id": c})
+
+    def join(self, m, c):
+        return self.client.post("/api/waitlist", json={"member_id": m, "class_id": c})
+
+    def credits_of(self, m):
+        return self.client.post(f"/api/members/{m}/credits", json={"amount": 1}, headers=self.auth).json["credits"] - 1
+
+    def test_waitlist_only_when_full(self):
+        m, c = self.member(), self.klass(capacity=1)
+        self.assertEqual(self.join(m, c).status_code, 409)  # still free seats
+
+    def test_join_waitlist_positions_and_duplicates(self):
+        m1, m2, m3 = self.member("a@x.com"), self.member("b@x.com"), self.member("c@x.com")
+        c = self.klass(capacity=1)
+        self.assertEqual(self.book(m1, c).status_code, 201)
+        self.assertEqual(self.join(m1, c).status_code, 409)  # already booked
+        self.assertEqual(self.join(m2, c).json["position"], 1)
+        self.assertEqual(self.join(m3, c).json["position"], 2)
+        self.assertEqual(self.join(m2, c).status_code, 409)  # already waiting
+
+    def test_cancel_promotes_first_waiting_member(self):
+        m1, m2, m3 = self.member("a@x.com"), self.member("b@x.com"), self.member("c@x.com")
+        c = self.klass(capacity=1)
+        booking = self.book(m1, c).json["id"]
+        self.join(m2, c)
+        self.join(m3, c)
+        r = self.client.delete(f"/api/bookings/{booking}", headers=self.auth)
+        self.assertEqual(r.json["promoted_member_ids"], [m2])
+        self.assertEqual(self.credits_of(m2), 0)  # paid with a credit when promoted
+        self.assertEqual(self.credits_of(m1), 1)  # refunded
+        self.assertEqual(self.book(m3, c).status_code, 409)  # seat is taken again
+        waiting = self.client.get(f"/api/classes/{c}/waitlist", headers=self.auth).json
+        self.assertEqual([w["member_id"] for w in waiting], [m3])
+
+    def test_promotion_skips_members_without_credits(self):
+        m1, m2, m3 = self.member("a@x.com"), self.member("b@x.com", 0), self.member("c@x.com")
+        c = self.klass(capacity=1)
+        booking = self.book(m1, c).json["id"]
+        self.join(m2, c)
+        self.join(m3, c)
+        r = self.client.delete(f"/api/bookings/{booking}", headers=self.auth)
+        self.assertEqual(r.json["promoted_member_ids"], [m3])
+        waiting = self.client.get(f"/api/classes/{c}/waitlist", headers=self.auth).json
+        self.assertEqual([w["member_id"] for w in waiting], [m2])  # keeps its place
+
+    def test_waitlist_admin_routes_and_size(self):
+        m1, m2 = self.member("a@x.com"), self.member("b@x.com")
+        c = self.klass(capacity=1)
+        self.book(m1, c)
+        entry = self.join(m2, c).json["id"]
+        self.assertEqual(self.client.get(f"/api/classes/{c}/waitlist").status_code, 401)
+        self.assertEqual(self.client.delete(f"/api/waitlist/{entry}").status_code, 401)
+        self.assertEqual(self.client.get("/api/classes").json[0]["waitlist_size"], 1)
+        self.assertIn(b"1 on waitlist", self.client.get("/").data)
+        self.assertEqual(self.client.delete(f"/api/waitlist/{entry}", headers=self.auth).status_code, 204)
+        self.assertEqual(self.client.delete(f"/api/waitlist/{entry}", headers=self.auth).status_code, 404)
 
 
 if __name__ == "__main__":

@@ -37,9 +37,18 @@ Use HTTPS (for example behind a reverse proxy) when exposing the app to the inte
 | POST | `/api/classes` (admin) | `{"title","starts_at","capacity"}` | Create a class |
 | GET | `/api/classes` | | List classes with seats left |
 | POST | `/api/bookings` | `{"member_id","class_id"}` | Book (uses 1 credit) |
-| DELETE | `/api/bookings/<id>` (admin) | | Cancel (refunds 1 credit) |
+| DELETE | `/api/bookings/<id>` (admin) | | Cancel (refunds 1 credit, promotes the next person on the waitlist) |
+| POST | `/api/waitlist` | `{"member_id","class_id"}` | Join the waitlist of a full class |
+| GET | `/api/classes/<id>/waitlist` (admin) | | Show the waitlist in order |
+| DELETE | `/api/waitlist/<id>` (admin) | | Remove someone from the waitlist |
 
 (admin) = admin only. Listing classes and booking are open for now; member login is planned.
+
+### Waitlist
+
+When a class is full, members can join its waitlist (no credit is charged yet). When a booking is cancelled,
+the first person in line who has at least one credit is booked automatically and pays one credit.
+Members without credits are skipped and keep their place in line.
 
 Booking is rejected when the class is full (409), already booked (409), or the member has no credits (402).
 
@@ -47,7 +56,7 @@ Booking is rejected when the class is full (409), already booked (409), or the m
 
 - [x] Admin login (HTTP Basic)
 - [ ] Member login
-- [ ] Waitlist when a class is full
+- [x] Waitlist when a class is full
 - [ ] Recurring classes
 - [ ] Email / LINE reminders
 - [ ] Multi-language UI (English, Traditional Chinese, Simplified Chinese)
