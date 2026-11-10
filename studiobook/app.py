@@ -7,6 +7,7 @@ from functools import wraps
 from flask import Flask, jsonify, render_template, request
 
 from .db import connect
+from .i18n import LABELS, pick_language, translate
 
 CLASS_QUERY = """SELECT c.*, c.capacity - COUNT(b.id) AS seats_left,
                         (SELECT COUNT(*) FROM waitlist w WHERE w.class_id = c.id) AS waitlist_size
@@ -82,7 +83,14 @@ def create_app(db_path: str = None, admin_password: str = None) -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("index.html", classes=db.execute(CLASS_QUERY).fetchall())
+        lang = pick_language(request.args.get("lang"), request.headers.get("Accept-Language"))
+        return render_template(
+            "index.html",
+            classes=db.execute(CLASS_QUERY).fetchall(),
+            lang=lang,
+            languages=LABELS,
+            t=lambda key, **values: translate(lang, key, **values),
+        )
 
     @app.post("/api/members")
     @admin_required

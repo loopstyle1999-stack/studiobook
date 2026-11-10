@@ -2,6 +2,7 @@ import base64
 import unittest
 
 from studiobook.app import create_app
+from studiobook.i18n import pick_language
 
 
 class StudioBookTests(unittest.TestCase):
@@ -135,6 +136,39 @@ class StudioBookTests(unittest.TestCase):
         self.assertIn(b"1 on waitlist", self.client.get("/").data)
         self.assertEqual(self.client.delete(f"/api/waitlist/{entry}", headers=self.auth).status_code, 204)
         self.assertEqual(self.client.delete(f"/api/waitlist/{entry}", headers=self.auth).status_code, 404)
+
+    # --- languages ---
+    def page(self, url="/", accept=None):
+        headers = {"Accept-Language": accept} if accept else {}
+        return self.client.get(url, headers=headers).data.decode("utf-8")
+
+    def test_page_language_switch(self):
+        self.klass(capacity=3)
+        self.assertIn("3 / 3 seats left", self.page())
+        self.assertIn("\u5269\u9918 3 / 3", self.page("/?lang=zh-Hant"))
+        self.assertIn("\u5269\u4f59 3 / 3", self.page("/?lang=zh-Hans"))
+        self.assertIn('lang="zh-Hant"', self.page("/?lang=zh-Hant"))
+
+    def test_page_follows_browser_language(self):
+        self.klass(capacity=3)
+        self.assertIn("\u5269\u9918 3 / 3", self.page(accept="zh-TW,zh;q=0.9,en;q=0.8"))
+        self.assertIn("\u5269\u4f59 3 / 3", self.page(accept="zh-CN"))
+        self.assertIn("3 / 3 seats left", self.page(accept="fr-FR"))
+
+    def test_pick_language(self):
+        self.assertEqual(pick_language("zh-Hans", "en"), "zh-Hans")  # explicit choice wins
+        self.assertEqual(pick_language("xx", "zh-HK"), "zh-Hant")  # unknown choice falls back
+        self.assertEqual(pick_language(None, "en;q=0.5,zh-CN;q=0.9"), "zh-Hans")  # q-values respected
+        self.assertEqual(pick_language(None, None), "en")
+        self.assertEqual(pick_language(None, "de,fr;q=0.8"), "en")
+
+    def test_waitlist_text_is_translated(self):
+        m1, m2 = self.member("a@x.com"), self.member("b@x.com")
+        c = self.klass(capacity=1)
+        self.book(m1, c)
+        self.join(m2, c)
+        self.assertIn("1 on waitlist", self.page())
+        self.assertIn("\u5019\u88dc 1 \u4eba", self.page("/?lang=zh-Hant"))
 
 
 if __name__ == "__main__":

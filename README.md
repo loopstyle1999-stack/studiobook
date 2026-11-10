@@ -14,6 +14,12 @@ studiobook            # serves on http://127.0.0.1:5000
 
 Set `STUDIOBOOK_DB=/path/to/studio.db` to choose where data is stored, `PORT` to change the port.
 
+## Languages
+
+The public page is available in English, Traditional Chinese and Simplified Chinese. It follows the browser's
+language, or add `?lang=en`, `?lang=zh-Hant` or `?lang=zh-Hans` to the URL. API error messages stay in English.
+Translations live in `studiobook/i18n.py`; contributions for more languages are welcome.
+
 ## Admin login
 
 Admin routes are protected with HTTP Basic auth (username `admin`). Set the password before starting:
@@ -59,7 +65,7 @@ Booking is rejected when the class is full (409), already booked (409), or the m
 - [x] Waitlist when a class is full
 - [ ] Recurring classes
 - [ ] Email / LINE reminders
-- [ ] Multi-language UI (English, Traditional Chinese, Simplified Chinese)
+- [x] Multi-language home page (English, Traditional Chinese, Simplified Chinese)
 - [ ] Docker image
 
 ## Development

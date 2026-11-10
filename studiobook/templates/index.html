@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,17 +8,19 @@
   body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
   .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; margin: .75rem 0; display: flex; justify-content: space-between; }
   .full { color: #b00; }
+  .lang { font-size: .9rem; color: #666; }
 </style>
 </head>
 <body>
-<h1>Classes</h1>
+<p class="lang">{% for code, label in languages.items() %}<a href="?lang={{ code }}">{{ label }}</a>{% if not loop.last %} | {% endif %}{% endfor %}</p>
+<h1>{{ t('title') }}</h1>
 {% for c in classes %}
 <div class="card">
   <div><strong>{{ c.title }}</strong><br>{{ c.starts_at }}</div>
-  <div class="{{ 'full' if c.seats_left == 0 }}">{{ c.seats_left }} / {{ c.capacity }} seats left{% if c.seats_left == 0 and c.waitlist_size %}<br>{{ c.waitlist_size }} on waitlist{% endif %}</div>
+  <div class="{{ 'full' if c.seats_left == 0 }}">{{ t('seats', left=c.seats_left, capacity=c.capacity) }}{% if c.seats_left == 0 and c.waitlist_size %}<br>{{ t('waitlist', n=c.waitlist_size) }}{% endif %}</div>
 </div>
 {% else %}
-<p>No classes yet. Add one with <code>POST /api/classes</code> (see README).</p>
+<p>{{ t('empty') }} <code>POST /api/classes</code></p>
 {% endfor %}
 </body>
 </html>
