@@ -1,6 +1,8 @@
 """studiobook: a small, self-hosted booking and membership app for studios."""
+import hmac
 import os
 import threading
+from functools import wraps
 
 from flask import Flask, jsonify, render_template, request
 
@@ -11,8 +13,9 @@ CLASS_QUERY = """SELECT c.*, c.capacity - COUNT(b.id) AS seats_left
                  GROUP BY c.id ORDER BY c.starts_at"""
 
 
-def create_app(db_path: str = None) -> Flask:
+def create_app(db_path: str = None, admin_password: str = None) -> Flask:
     app = Flask(__name__)
+    admin_password = admin_password or os.environ.get("STUDIOBOOK_ADMIN_PASSWORD")
     db = connect(db_path or os.environ.get("STUDIOBOOK_DB", "studiobook.db"))
     lock = threading.Lock()
 
@@ -22,11 +25,36 @@ def create_app(db_path: str = None) -> Flask:
     def body():
         return request.get_json(silent=True) or {}
 
+    def admin_required(view):
+        """Protect a route with HTTP Basic auth (user "admin")."""
+
+        @wraps(view)
+        def wrapper(*args, **kwargs):
+            if not admin_password:
+                return err("admin is disabled: set STUDIOBOOK_ADMIN_PASSWORD", 503)
+            auth = request.authorization
+            ok = (
+                auth is not None
+                and auth.username == "admin"
+                and hmac.compare_digest(
+                    (auth.password or "").encode("utf-8"), admin_password.encode("utf-8")
+                )
+            )
+            if not ok:
+                resp = jsonify(error="authentication required")
+                resp.status_code = 401
+                resp.headers["WWW-Authenticate"] = 'Basic realm="studiobook admin"'
+                return resp
+            return view(*args, **kwargs)
+
+        return wrapper
+
     @app.get("/")
     def index():
         return render_template("index.html", classes=db.execute(CLASS_QUERY).fetchall())
 
     @app.post("/api/members")
+    @admin_required
     def add_member():
         data = body()
         name, email, credits = data.get("name"), data.get("email"), data.get("credits", 0)
@@ -45,6 +73,7 @@ def create_app(db_path: str = None) -> Flask:
         return jsonify(id=cur.lastrowid, name=name, email=email, credits=credits), 201
 
     @app.post("/api/members/<int:member_id>/credits")
+    @admin_required
     def add_credits(member_id):
         amount = body().get("amount")
         if not isinstance(amount, int) or amount <= 0:
@@ -60,6 +89,7 @@ def create_app(db_path: str = None) -> Flask:
         return jsonify(dict(row))
 
     @app.post("/api/classes")
+    @admin_required
     def add_class():
         data = body()
         title, starts_at, capacity = data.get("title"), data.get("starts_at"), data.get("capacity")
@@ -105,6 +135,7 @@ def create_app(db_path: str = None) -> Flask:
         return jsonify(id=cur.lastrowid, member_id=member_id, class_id=class_id), 201
 
     @app.delete("/api/bookings/<int:booking_id>")
+    @admin_required
     def cancel(booking_id):
         with lock:
             row = db.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
