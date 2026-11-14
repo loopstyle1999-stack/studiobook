@@ -15,3 +15,7 @@ tenants/
 # local screenshots / scratch files
 preview.html
 *-sheet.jpg
+
+# local review screenshots (root only)
+/*.png
+/icon-source*.html
