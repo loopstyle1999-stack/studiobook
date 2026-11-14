@@ -19,3 +19,4 @@ preview.html
 # local review screenshots (root only)
 /*.png
 /icon-source*.html
+/smoke.py
