@@ -1,79 +1,80 @@
 # studiobook
 
-Self-hosted booking and membership management for small studios (yoga, pilates, dance, personal training, beauty).
-No SaaS fees, no vendor lock-in: one small Python app and one SQLite file.
+Self-hosted booking and membership management for small studios — yoga, pilates, dance,
+fitness, training. One small Python app and SQLite files: no SaaS fees, no vendor lock-in.
 
-**Status:** early MVP (v0.1). Class scheduling, members with credit packs, bookings with capacity limits, cancellation with credit refund.
+**Status:** v0.5 — multi-institution, class codes, student web app, admin dashboard.
+
+## What it does
+
+**Multi-institution.** One deployment serves many studios. Each institution has its own
+database, its own class code, its own students, schedule and reports. Nothing is shared
+between institutions.
+
+**Students** sign up with an e-mail and password, join a class by typing the code their
+teacher gave them, then book from a phone-first web app (installable to the home screen).
+They see a month calendar, filter by class type, book or join a waitlist, cancel, and
+track their credit packs and memberships.
+
+**Teachers** sign in with their admin e-mail and password and get a dashboard: today's
+classes, check-in, a timeline week view, members, plans and sales, reports with CSV
+export, class types and instructors, and the class code to share.
+
+**Languages:** English, Traditional Chinese, Simplified Chinese. Add `?lang=en`,
+`?lang=zh-Hant` or `?lang=zh-Hans` to any URL, or let the browser decide.
 
 ## Quick start
 
-```bash
-pip install -e .
-studiobook            # serves on http://127.0.0.1:5000
-```
+Windows: double-click `start.bat` (this computer only) or `start-lan.bat`
+(everyone on the same Wi-Fi; it prints the address to share).
 
-Set `STUDIOBOOK_DB=/path/to/studio.db` to choose where data is stored, `PORT` to change the port.
-
-## Languages
-
-The public page is available in English, Traditional Chinese and Simplified Chinese. It follows the browser's
-language, or add `?lang=en`, `?lang=zh-Hant` or `?lang=zh-Hans` to the URL. API error messages stay in English.
-Translations live in `studiobook/i18n.py`; contributions for more languages are welcome.
-
-## Admin login
-
-Admin routes are protected with HTTP Basic auth (username `admin`). Set the password before starting:
-
-```bash
-# Linux / macOS
-STUDIOBOOK_ADMIN_PASSWORD=choose-a-strong-password studiobook
-# Windows PowerShell
-$env:STUDIOBOOK_ADMIN_PASSWORD="choose-a-strong-password"; studiobook
-```
-
-If no password is set, admin routes return 503 (disabled) instead of being left open.
-Use HTTPS (for example behind a reverse proxy) when exposing the app to the internet.
-
-## API
-
-| Method | Path | Body | Purpose |
-|---|---|---|---|
-| POST | `/api/members` (admin) | `{"name","email","credits"}` | Add a member |
-| POST | `/api/members/<id>/credits` (admin) | `{"amount"}` | Add credits to a member |
-| POST | `/api/classes` (admin) | `{"title","starts_at","capacity"}` | Create a class |
-| GET | `/api/classes` | | List classes with seats left |
-| POST | `/api/bookings` | `{"member_id","class_id"}` | Book (uses 1 credit) |
-| DELETE | `/api/bookings/<id>` (admin) | | Cancel (refunds 1 credit, promotes the next person on the waitlist) |
-| POST | `/api/waitlist` | `{"member_id","class_id"}` | Join the waitlist of a full class |
-| GET | `/api/classes/<id>/waitlist` (admin) | | Show the waitlist in order |
-| DELETE | `/api/waitlist/<id>` (admin) | | Remove someone from the waitlist |
-
-(admin) = admin only. Listing classes and booking are open for now; member login is planned.
-
-### Waitlist
-
-When a class is full, members can join its waitlist (no credit is charged yet). When a booking is cancelled,
-the first person in line who has at least one credit is booked automatically and pays one credit.
-Members without credits are skipped and keep their place in line.
-
-Booking is rejected when the class is full (409), already booked (409), or the member has no credits (402).
-
-## Roadmap
-
-- [x] Admin login (HTTP Basic)
-- [ ] Member login
-- [x] Waitlist when a class is full
-- [ ] Recurring classes
-- [ ] Email / LINE reminders
-- [x] Multi-language home page (English, Traditional Chinese, Simplified Chinese)
-- [ ] Docker image
-
-## Development
+Any platform:
 
 ```bash
 pip install -e .
-python -m unittest discover -s tests -v
+python -m studiobook.app
 ```
+
+Environment variables: `STUDIOBOOK_DB` (database path), `PORT`, `STUDIOBOOK_HOST`
+(use `0.0.0.0` to accept connections from other machines).
+
+## First run
+
+1. An existing single-studio `studiobook.db` is adopted as the first institution.
+2. An admin account is created: **`admin@local`**, with the password stored in
+   `admin-password.txt` next to the database. Change it under Settings → Admin account.
+3. The dashboard shows the institution's **class code**. Share it with students.
+
+New institutions can be created from the sign-in page (Teacher tab → *Create an
+institution*); they start empty and get their own code.
+
+## How the data is organised
+
+```
+registry.db                 accounts, institutions, admins, memberships
+studiobook.db               institution #1 (the original database)
+tenants/tenant-xxxxxxxx.db  every institution created later
+```
+
+`studiobook/core.py` stays single-tenant: one `Studio` object is one institution, so
+scheduling, credits, waitlists and reports never deal with tenant filters. The registry
+only answers "who is this person, and which institution are they looking at".
+
+## Tests
+
+```bash
+pip install -e . pytest
+python -m pytest -q
+```
+
+81 tests: core booking rules, credits and waitlists, web flows, and multi-institution
+behaviour (isolation, class codes, joining, leaving, team management).
+
+## Not included
+
+- Online payments (needs a payment provider account)
+- E-mail / LINE reminders (needs provider credentials)
+- Public hosting, HTTPS and backups — run it behind a reverse proxy if you expose it
 
 ## License
 

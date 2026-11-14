@@ -1,6 +1,6 @@
 [project]
 name = "studiobook"
-version = "0.1.0"
+version = "0.4.0"
 description = "Self-hosted booking and membership management for small studios (yoga, pilates, dance, training)."
 readme = "README.md"
 license = { text = "MIT" }
@@ -18,4 +18,4 @@ build-backend = "setuptools.build_meta"
 include = ["studiobook*"]
 
 [tool.setuptools.package-data]
-studiobook = ["templates/*.html"]
+studiobook = ["templates/*.html", "static/*"]

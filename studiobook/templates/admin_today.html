@@ -1,0 +1,28 @@
+{% extends "admin_base.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+<div class="pagehead"><div><h1>{{ t('nav_today') }}</h1><p class="muted">{{ day_label(today) }} &middot; {{ t('today_hint') }}</p></div></div>
+{% for d in details %}{% set c = d['class'] %}
+<section class="card" style="border-left:5px solid {{ c.color }}">
+  <div class="row between center" style="margin-bottom:.6rem">
+    <div><b style="font-size:1.1rem">{{ hhmm(c.starts_at) }}</b> &nbsp;<b>{{ c.title }}</b>{% if c.instructor %} <span class="muted">&middot; {{ c.instructor }}</span>{% endif %}</div>
+    <div class="row center"><span class="pill {{ 'bad' if c.seats_left == 0 else 'brand' }}">{{ c.booked }} / {{ c.capacity }}</span><a class="btn ghost sm" href="{{ url_for('admin_class', class_id=c.id) }}">{{ t('open') }}</a></div>
+  </div>
+  <div class="list">
+  {% for b in d.bookings %}
+    <div>
+      <span class="grow who">{{ avatar(b.name) }}<span><a href="{{ url_for('admin_member', member_id=b.member_id) }}">{{ b.name }}</a></span></span>
+      <span class="row center" style="gap:.4rem">
+        {% for s in ('attended', 'no_show') %}
+        <form method="post" action="{{ url_for('admin_mark', booking_id=b.id) }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="status" value="{{ 'booked' if b.status == s else s }}">
+          <button class="sm {{ '' if b.status == s else 'ghost' }}" {% if b.status == s and s == 'no_show' %}style="background:var(--bad);border-color:var(--bad);color:#fff"{% endif %}>{{ t('mark_' + s) }}</button>
+        </form>
+        {% endfor %}
+      </span>
+    </div>
+  {% else %}<div class="muted">{{ t('no_one') }}</div>{% endfor %}
+  </div>
+</section>
+{% else %}<div class="card empty">{{ t('no_classes_today') }}</div>{% endfor %}
+{% endblock %}

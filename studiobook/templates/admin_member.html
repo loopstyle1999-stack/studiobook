@@ -1,0 +1,111 @@
+{% extends "admin_base.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+{% set m = d.member %}
+<div class="pagehead">
+  <div class="who">{{ avatar(m.name, true) }}<div><h1>{{ m.name }}</h1><p class="muted">{{ m.email }}{% if m.phone %} &middot; {{ m.phone }}{% endif %}</p></div></div>
+  <div class="row center">
+    <span class="pill ok">{{ t('s_attended') }} {{ d.stats.attended }}</span>
+    <span class="pill bad">{{ t('s_no_show') }} {{ d.stats.no_show }}</span>
+    {% if m.unlimited %}<span class="credit-chip">{{ t('unlimited') }}</span>{% endif %}
+    <span class="credit-chip">{{ t('credits_n', n=m.credits) }}</span>
+  </div>
+</div>
+<div class="grid two">
+  <div>
+    <section class="card tablewrap">
+      <h2>{{ t('purchases') }}</h2>
+      {% if d.purchases %}
+      <table>
+        <tr><th>{{ t('plan') }}</th><th>{{ t('left') }}</th><th>{{ t('valid') }}</th><th>{{ t('price') }}</th><th></th></tr>
+        {% for p in d.purchases %}
+        <tr>
+          <td><b>{{ p.name }}</b><br><span class="muted">{{ p.created_at[:10] }} &middot; {{ t('pay_' + p.method) }}{% if p.note %} &middot; {{ p.note }}{% endif %}</span></td>
+          <td>{% if p.kind == 'unlimited' %}&infin;{% else %}{{ p.credits_left }} / {{ p.credits_total }}{% endif %}</td>
+          <td class="nowrap">{{ p.starts_on[5:] }} &rarr; {{ p.expires_on[5:] if p.expires_on else '&infin;'|safe }}</td>
+          <td>{{ money(p.price) if p.price else '-' }}</td>
+          <td class="right">
+            {% if p.status == 'void' %}<span class="pill bad">{{ t('voided') }}</span>
+            {% elif p.active_now %}<span class="pill ok">{{ t('active') }}</span>
+            {% else %}<span class="pill">{{ t('ended') }}</span>{% endif %}
+            {% if p.status == 'active' and p.method != 'adjust' %}
+            <form method="post" action="{{ url_for('admin_void_purchase', purchase_id=p.id) }}" class="inline" data-confirm="{{ t('confirm_void') }}">
+              <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}"><button class="linky">{{ t('void') }}</button>
+            </form>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endif %}
+    </section>
+    <section class="card">
+      <h2>{{ t('bookings_history') }}</h2>
+      {% if d.bookings or d.waiting %}
+      <div class="list">
+        {% for w in d.waiting %}<a class="item" href="{{ url_for('admin_class', class_id=w.class_id) }}"><span class="grow">{{ w.starts_at[:10] }} {{ hhmm(w.starts_at) }} &nbsp;{{ w.title }}</span><span class="pill warn">{{ t('waiting') }}</span></a>{% endfor %}
+        {% for b in d.bookings %}<a class="item" href="{{ url_for('admin_class', class_id=b.class_id) }}"><span class="grow">{{ b.starts_at[:10] }} {{ hhmm(b.starts_at) }} &nbsp;{{ b.title }}</span><span class="pill {{ {'attended': 'ok', 'no_show': 'bad'}.get(b.status, '') }}">{{ t('s_' + b.status) }}</span></a>{% endfor %}
+      </div>
+      {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endif %}
+    </section>
+    <section class="card tablewrap">
+      <h2>{{ t('credit_history') }}</h2>
+      {% if d.log %}
+      <table>
+        <tr><th>{{ t('date') }}</th><th>{{ t('change') }}</th><th>{{ t('reason') }}</th></tr>
+        {% for l in d.log %}<tr><td class="muted">{{ l.created_at[:16] }}</td><td><b>{{ '%+d' % l.delta }}</b></td><td>{{ t('r_' + l.reason) }}{% if l.note %} <span class="muted">&middot; {{ l.note }}</span>{% endif %}</td></tr>{% endfor %}
+      </table>
+      {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endif %}
+    </section>
+  </div>
+  <div>
+    <section class="card">
+      <h2>{{ t('sell_plan') }}</h2>
+      {% if plans %}
+      <form method="post" action="{{ url_for('admin_sell', member_id=m.id) }}" class="stack">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}">
+        <label>{{ t('plan') }}
+          <select name="plan_id" required>{% for p in plans %}<option value="{{ p.id }}">{{ p.name }} &middot; {{ money(p.price) }}</option>{% endfor %}</select>
+        </label>
+        <div class="row">
+          <label style="flex:1">{{ t('pay_method') }}<select name="method">{% for k in methods if k != 'adjust' %}<option value="{{ k }}">{{ t('pay_' + k) }}</option>{% endfor %}</select></label>
+          <label style="width:7rem">{{ t('price') }}<input type="number" name="price" min="0" placeholder="{{ t('price_default') }}"></label>
+        </div>
+        <div class="row">
+          <label style="flex:1">{{ t('starts') }}<input type="date" name="start"></label>
+          <label style="flex:1">{{ t('note') }}<input name="note"></label>
+        </div>
+        <button class="block">{{ t('sell') }}</button>
+      </form>
+      {% else %}<p class="muted">{{ t('no_plans_yet') }} <a href="{{ url_for('admin_catalog') }}">{{ t('nav_catalog') }}</a></p>{% endif %}
+    </section>
+    <section class="card">
+      <h2>{{ t('add_credits') }}</h2>
+      <form method="post" action="{{ url_for('admin_add_credits', member_id=m.id) }}" class="row">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}">
+        <label style="width:5.5rem">{{ t('amount') }}<input type="number" name="amount" min="1" value="1"></label>
+        <label style="flex:1">{{ t('note') }}<input name="note"></label>
+        <button class="ghost">{{ t('add') }}</button>
+      </form>
+      <p class="muted" style="margin-top:.5rem">{{ t('gift_hint') }}</p>
+    </section>
+    <section class="card">
+      <h2>{{ t('details') }}</h2>
+      <form method="post" action="{{ url_for('admin_update_member', member_id=m.id) }}" class="stack">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}">
+        <label>{{ t('name') }}<input name="name" value="{{ m.name }}" required></label>
+        <label>{{ t('phone') }}<input name="phone" value="{{ m.phone }}"></label>
+        <label>{{ t('notes') }}<textarea name="notes" rows="3">{{ m.notes }}</textarea></label>
+        <button>{{ t('save') }}</button>
+      </form>
+    </section>
+    <section class="card">
+      <h2>{{ t('access_code') }}</h2>
+      <p class="muted">{{ t('code_hint') }}</p>
+      <form method="post" action="{{ url_for('admin_reset_code', member_id=m.id) }}" data-confirm="{{ t('confirm_reset_code') }}" style="margin-top:.7rem">
+        <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}">
+        <button class="ghost">{{ t('reset_code') }}</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

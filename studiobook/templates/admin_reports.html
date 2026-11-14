@@ -1,0 +1,64 @@
+{% extends "admin_base.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+<div class="pagehead">
+  <div><h1>{{ t('nav_reports') }}</h1><p class="muted">{{ r.month }}</p></div>
+  <div class="row center">
+    <div class="seg"><a href="{{ url_for('admin_reports', month=r.prev) }}">&larr;</a><a class="on">{{ r.month }}</a><a href="{{ url_for('admin_reports', month=r.next) }}">&rarr;</a></div>
+    <a class="btn ghost" href="{{ url_for('admin_export_sales', month=r.month) }}">{{ t('export_sales') }}</a>
+    <a class="btn ghost" href="{{ url_for('admin_export_bookings', month=r.month) }}">{{ t('export_bookings') }}</a>
+  </div>
+</div>
+<div class="grid kpis">
+  <div class="card kpi"><div class="n">{{ money(r.revenue) }}</div><div class="l">{{ t('revenue') }} &middot; {{ t('sales_n', n=r.sales_count) }}</div></div>
+  <div class="card kpi"><div class="n">{{ r.classes }}</div><div class="l">{{ t('classes_held') }}</div></div>
+  <div class="card kpi"><div class="n">{{ r.booked }}</div><div class="l">{{ t('bookings_total') }}</div></div>
+  <div class="card kpi"><div class="n">{{ r.fill }}%</div><div class="l">{{ t('fill_rate') }}</div></div>
+  <div class="card kpi"><div class="n">{{ r.no_show_rate }}%</div><div class="l">{{ t('no_show_rate') }}</div></div>
+  <div class="card kpi"><div class="n">{{ r.new_members }}</div><div class="l">{{ t('new_members') }}</div></div>
+</div>
+<div class="grid two">
+<div>
+  <section class="card">
+    <h2>{{ t('daily_revenue') }}</h2>
+    {% set top = (r.daily|map(attribute='amount')|max) or 1 %}
+    <div class="spark">{% for d in r.daily %}<i title="{{ d.day }}: {{ money(d.amount) }}" style="height:{{ (100 * d.amount / top)|round|int }}%"></i>{% endfor %}</div>
+  </section>
+  <section class="card tablewrap">
+    <h2>{{ t('by_class_type') }}</h2>
+    {% if r.by_type %}<table>
+      <tr><th>{{ t('class_type') }}</th><th>{{ t('classes_held') }}</th><th>{{ t('bookings_total') }}</th><th>{{ t('fill_rate') }}</th></tr>
+      {% for g in r.by_type %}<tr><td><b>{{ g.name }}</b></td><td>{{ g.classes }}</td><td>{{ g.booked }}</td><td><div class="row center" style="gap:.5rem;flex-wrap:nowrap"><div class="bar" style="flex:1"><i style="width:{{ g.fill }}%"></i></div>{{ g.fill }}%</div></td></tr>{% endfor %}
+    </table>{% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endif %}
+  </section>
+  <section class="card tablewrap">
+    <h2>{{ t('by_instructor') }}</h2>
+    {% if r.by_instructor %}<table>
+      <tr><th>{{ t('instructor') }}</th><th>{{ t('classes_held') }}</th><th>{{ t('bookings_total') }}</th><th>{{ t('fill_rate') }}</th></tr>
+      {% for g in r.by_instructor %}<tr><td><b>{{ g.name }}</b></td><td>{{ g.classes }}</td><td>{{ g.booked }}</td><td>{{ g.fill }}%</td></tr>{% endfor %}
+    </table>{% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endif %}
+  </section>
+</div>
+<div>
+  <section class="card tablewrap">
+    <h2>{{ t('by_plan') }}</h2>
+    {% if r.by_plan %}<table>
+      <tr><th>{{ t('plan') }}</th><th>#</th><th>{{ t('revenue') }}</th></tr>
+      {% for p in r.by_plan %}<tr><td>{{ p.name }}</td><td>{{ p.count }}</td><td><b>{{ money(p.revenue) }}</b></td></tr>{% endfor %}
+    </table>{% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endif %}
+  </section>
+  <section class="card">
+    <h2>{{ t('busiest_days') }}</h2>
+    {% set wmax = (r.weekdays|max) or 1 %}
+    {% for n in r.weekdays %}<div class="row center" style="flex-wrap:nowrap;gap:.6rem;margin:.3rem 0"><span class="muted" style="width:2.2rem">{{ t('wd%d' % loop.index0) }}</span><div class="bar" style="flex:1"><i style="width:{{ (100 * n / wmax)|round|int }}%"></i></div><span style="width:1.8rem;text-align:right">{{ n }}</span></div>{% endfor %}
+  </section>
+  <section class="card">
+    <h2>{{ t('top_members') }}</h2>
+    <div class="list">
+    {% for m in r.top_members %}<a class="item" href="{{ url_for('admin_member', member_id=m.id) }}"><span class="grow who">{{ avatar(m.name) }}<span>{{ m.name }}</span></span><span class="pill brand">{{ t('visits_n', n=m.visits) }}</span></a>
+    {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endfor %}
+    </div>
+  </section>
+</div>
+</div>
+{% endblock %}

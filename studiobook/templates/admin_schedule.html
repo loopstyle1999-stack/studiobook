@@ -1,0 +1,82 @@
+{% extends "admin_base.html" %}
+{% block body %}
+<div class="pagehead">
+  <div><h1>{{ t('nav_schedule') }}</h1><p class="muted">{{ start.isoformat() }} &ndash; {{ days[-1].date.isoformat() }}</p></div>
+  <div class="row center">
+    <form method="get" class="row center" style="gap:.4rem">
+      <input type="hidden" name="week" value="{{ start.isoformat() }}">
+      <select name="type" onchange="this.form.submit()"><option value="">{{ t('all_types') }}</option>{% for ty in types %}<option value="{{ ty.id }}" {{ 'selected' if type_id == ty.id }}>{{ ty.name }}</option>{% endfor %}</select>
+      <select name="instructor" onchange="this.form.submit()"><option value="">{{ t('all_instructors') }}</option>{% for i in instructors %}<option {{ 'selected' if instructor == i.name }}>{{ i.name }}</option>{% endfor %}</select>
+    </form>
+    <div class="seg">
+      <a href="{{ url_for('admin_schedule', week=prev_week.isoformat(), type=type_id, instructor=instructor) }}">&larr;</a>
+      <a href="{{ url_for('admin_schedule', week=this_week.isoformat(), type=type_id, instructor=instructor) }}" class="{{ 'on' if start == this_week }}">{{ t('this_week') }}</a>
+      <a href="{{ url_for('admin_schedule', week=next_week.isoformat(), type=type_id, instructor=instructor) }}">&rarr;</a>
+    </div>
+    <button data-open="dlg-class">+ {{ t('add_class') }}</button>
+  </div>
+</div>
+
+<dialog id="dlg-class">
+  <div class="dhead"><h2 style="margin:0">{{ t('add_class') }}</h2><button class="x" data-close type="button">&times;</button></div>
+  <div class="dbody">
+  <form method="post" action="{{ url_for('admin_add_class') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.full_path }}">
+    <label>{{ t('class_type') }}
+      <select name="type_id" data-type-select>
+        <option value="">{{ t('custom_class') }}</option>
+        {% for ty in types %}<option value="{{ ty.id }}" data-duration="{{ ty.duration_min }}" data-capacity="{{ ty.capacity }}">{{ ty.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="row">
+      <label style="flex:1">{{ t('class_title') }}<input name="title"></label>
+      <label>{{ t('instructor') }}<input name="instructor" list="instructor-list" autocomplete="off"></label>
+      <datalist id="instructor-list">{% for i in instructors %}<option value="{{ i.name }}">{% endfor %}</datalist>
+    </div>
+    <div class="row">
+      <label style="flex:1">{{ t('class_time') }}<input type="datetime-local" name="starts_at" required></label>
+      <label>{{ t('capacity') }}<input type="number" name="capacity" min="1" value="10" style="width:6rem" required></label>
+      <label>{{ t('duration') }}<input type="number" name="duration" min="5" max="600" value="60" style="width:6rem"></label>
+    </div>
+    <label class="check"><input type="checkbox" name="repeat" value="1" data-toggle="repeat-box"> {{ t('repeat_weekly') }}</label>
+    <div id="repeat-box" hidden class="stack">
+      <div class="days">{% for i in range(7) %}<label class="check"><input type="checkbox" name="weekdays" value="{{ i }}"> {{ t('wd%d' % i) }}</label>{% endfor %}</div>
+      <label style="width:9rem">{{ t('for_weeks') }}<input type="number" name="weeks" min="1" max="52" value="8"></label>
+      <p class="muted">{{ t('repeat_hint') }}</p>
+    </div>
+    <div class="row between"><span class="muted">{{ t('click_hint') }}</span><button>{{ t('add') }}</button></div>
+  </form>
+  </div>
+</dialog>
+
+<div class="tg">
+  <div class="tg-corner"></div>
+  {% for day in days %}<div class="tg-dh {{ 'today' if day.date == today }}">{{ t('wd%d' % day.date.weekday()) }} <b>{{ day.date.day }}</b></div>{% endfor %}
+  <div class="tg-hours" style="height:{{ grid.height }}px">{% for h in grid.hours %}<div class="tg-hour">{{ '%02d:00' % h }}</div>{% endfor %}</div>
+  {% for day in days %}
+  <div class="tg-col {{ 'today' if day.date == today }}" style="height:{{ grid.height }}px" data-date="{{ day.date.isoformat() }}" data-lo="{{ grid.lo }}">
+    {% if day.date == today and now_top is not none %}<div class="tg-now" style="top:{{ now_top }}px"></div>{% endif %}
+    {% for c in day.classes %}
+    <a class="tg-ev {{ 'full' if c.seats_left == 0 }} {{ 'past' if c.starts_at < now }}" href="{{ url_for('admin_class', class_id=c.id) }}"
+       style="--c:{{ c.color }};top:{{ c.top }}px;height:{{ c.height }}px;left:calc({{ c.lane }} * 100% / {{ c.lanes }});width:calc(100% / {{ c.lanes }} - 2px)">
+      <b>{{ hhmm(c.starts_at) }} {{ c.title }}</b>
+      <small>{{ c.booked }}/{{ c.capacity }}{% if c.waitlist_size %} +{{ c.waitlist_size }}{% endif %}{% if c.instructor %} &middot; {{ c.instructor }}{% endif %}</small>
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="agenda">
+{% for day in days %}{% if day.classes %}
+  <div class="dayhead">{{ day_label(day.date) }}</div>
+  {% for c in day.classes %}
+  <a class="cls" style="--c:{{ c.color }};color:inherit;text-decoration:none" href="{{ url_for('admin_class', class_id=c.id) }}">
+    <div class="time">{{ hhmm(c.starts_at) }}<small>{{ t('minutes', n=c.duration_min) }}</small></div>
+    <div class="meta"><b>{{ c.title }}</b><small>{{ c.instructor }}</small></div>
+    <span class="pill {{ 'bad' if c.seats_left == 0 else 'brand' }}">{{ c.booked }} / {{ c.capacity }}</span>
+  </a>
+  {% endfor %}
+{% endif %}{% endfor %}
+</div>
+{% endblock %}

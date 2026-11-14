@@ -1,0 +1,34 @@
+{% extends "base_public.html" %}
+{% block topright %}<span class="credit-chip">{% if d.member.unlimited %}&infin;{% else %}{{ t('credits_n', n=d.member.credits) }}{% endif %}</span>{% endblock %}
+{% block body %}
+<h1 style="margin:.2rem 0 .4rem">{{ t('tab_bookings') }}</h1>
+<h3>{{ t('upcoming') }}</h3>
+{% for b in d.my_bookings %}
+<div class="cls" style="--c:{{ b.color }}">
+  <div class="time">{{ hhmm(b.starts_at) }}<small>{{ day_label(b.starts_at) }}</small></div>
+  <div class="meta"><b>{{ b.title }}</b><small>{{ t('minutes', n=b.duration_min) }}{% if b.instructor %} &middot; {{ b.instructor }}{% endif %}</small></div>
+  {% if b.can_cancel %}
+  <form method="post" action="{{ url_for('member_cancel', booking_id=b.booking_id) }}" data-confirm="{{ t('confirm_cancel_booking') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}"><button class="danger sm">{{ t('cancel') }}</button>
+  </form>
+  {% else %}<span class="pill">{{ t('too_late') }}</span>{% endif %}
+</div>
+{% else %}<div class="empty">{{ t('no_bookings') }}</div>{% endfor %}
+{% set waiting = d.upcoming|selectattr('my_waitlist')|list %}
+{% if waiting %}
+<h3>{{ t('waiting') }}</h3>
+{% for c in waiting %}
+<div class="cls" style="--c:{{ c.color }}">
+  <div class="time">{{ hhmm(c.starts_at) }}<small>{{ day_label(c.starts_at) }}</small></div>
+  <div class="meta"><b>{{ c.title }}</b><small>{{ c.instructor }}</small></div>
+  <form method="post" action="{{ url_for('member_leave', entry_id=c.my_waitlist) }}"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}"><button class="ghost sm">{{ t('leave_waitlist') }}</button></form>
+</div>
+{% endfor %}{% endif %}
+{% if d.history %}
+<h3>{{ t('history') }}</h3>
+<div class="card list">
+{% for h in d.history %}<div><span class="grow">{{ h.starts_at[:10] }} {{ hhmm(h.starts_at) }} &nbsp;{{ h.title }}</span><span class="pill {{ {'attended': 'ok', 'no_show': 'bad'}.get(h.status, '') }}">{{ t('s_' + h.status) }}</span></div>{% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+{% block tabbar %}{% include "_tabbar.html" %}{% endblock %}

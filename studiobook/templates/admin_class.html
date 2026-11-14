@@ -1,0 +1,81 @@
+{% extends "admin_base.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+{% set c = d['class'] %}
+<div class="pagehead">
+  <div>
+    <h1><span class="dot" style="--c:{{ c.color }}"></span>{{ c.title }}</h1>
+    <p class="muted">{{ day_label(c.starts_at) }} {{ hhmm(c.starts_at) }} &middot; {{ t('minutes', n=c.duration_min) }}{% if c.instructor %} &middot; {{ c.instructor }}{% endif %}{% if c.type_name %} &middot; {{ c.type_name }}{% endif %}</p>
+  </div>
+  <div class="row center"><span class="pill {{ 'bad' if c.seats_left == 0 else 'brand' }}">{{ t('seats', left=c.seats_left, capacity=c.capacity) }}</span>
+  <a class="btn ghost sm" href="{{ url_for('admin_schedule', week=c.starts_at[:10]) }}">{{ t('back_schedule') }}</a></div>
+</div>
+<div class="grid two">
+<div>
+<section class="card">
+  <h2>{{ t('roster') }}</h2>
+  {% if d.bookings %}
+  <div class="tablewrap"><table>
+    <tr><th>{{ t('name') }}</th><th>{{ t('status') }}</th><th></th></tr>
+    {% for b in d.bookings %}
+    <tr>
+      <td><div class="who">{{ avatar(b.name) }}<span><a href="{{ url_for('admin_member', member_id=b.member_id) }}">{{ b.name }}</a><span class="muted" style="display:block">{{ b.email }}</span></span></div></td>
+      <td><span class="pill {{ {'attended': 'ok', 'no_show': 'bad'}.get(b.status, '') }}">{{ t('s_' + b.status) }}</span></td>
+      <td class="right nowrap">
+        {% for s in ('attended', 'no_show', 'booked') if s != b.status %}
+        <form method="post" action="{{ url_for('admin_mark', booking_id=b.id) }}" class="inline">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="status" value="{{ s }}">
+          <button class="ghost sm">{{ t('mark_' + s) }}</button>
+        </form>
+        {% endfor %}
+        <form method="post" action="{{ url_for('admin_cancel_booking', booking_id=b.id) }}" class="inline" data-confirm="{{ t('confirm_cancel_booking') }}">
+          <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}">
+          <button class="danger sm">{{ t('cancel') }}</button>
+          <button class="danger sm" name="refund" value="yes">{{ t('cancel_refund') }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table></div>
+  {% else %}<div class="empty">{{ t('no_one') }}</div>{% endif %}
+</section>
+{% if d.waiting %}
+<section class="card">
+  <h2>{{ t('waiting') }}</h2>
+  <div class="list">
+  {% for w in d.waiting %}
+    <form method="post" action="{{ url_for('admin_remove_waitlist', entry_id=w.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}">
+      <span class="grow who">{{ avatar(w.name) }}<span>{{ loop.index }}. {{ w.name }} <span class="muted">&middot; {% if w.unlimited %}{{ t('unlimited') }}{% else %}{{ t('credits') }}: {{ w.credits }}{% endif %}</span></span></span>
+      <button class="ghost sm">{{ t('remove') }}</button>
+    </form>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+</div>
+<div>
+{% if not c.started %}
+<section class="card">
+  <h2>{{ t('add_to_class') }}</h2>
+  <form method="post" action="{{ url_for('admin_book') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="class_id" value="{{ c.id }}">
+    <label>{{ t('select_member') }}
+      <select name="member_id" required><option value=""></option>
+      {% for m in members %}<option value="{{ m.id }}">{{ m.name }} ({{ '&infin;'|safe if m.unlimited else m.credits }})</option>{% endfor %}</select>
+    </label>
+    {% if c.seats_left > 0 %}<button class="block" name="do" value="book">{{ t('book') }}</button>
+    {% else %}<button class="block" name="do" value="waitlist">{{ t('join_waitlist') }}</button>{% endif %}
+  </form>
+</section>
+{% endif %}
+<section class="card flat">
+  <form method="post" action="{{ url_for('admin_cancel_class', class_id=c.id) }}" data-confirm="{{ t('confirm_cancel_class') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <span class="muted">{{ t('cancel_class_hint') }}</span>
+    <button class="danger">{{ t('cancel_class') }}</button>
+  </form>
+</section>
+</div>
+</div>
+{% endblock %}

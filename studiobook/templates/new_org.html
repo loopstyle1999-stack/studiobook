@@ -1,0 +1,17 @@
+{% extends "base_public.html" %}
+{% block body %}
+<div class="login card">
+  <h1>{{ t('new_org_title') }}</h1>
+  <p class="muted login-hint">{{ t('new_org_hint') }}</p>
+  {% if error %}<div class="flash error">{{ t(error) }}</div>{% endif %}
+  <form method="post">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label>{{ t('org_name') }}<input name="org_name" maxlength="60" autofocus required></label>
+    <label>{{ t('admin_email') }}<input type="email" name="email" autocomplete="username" required></label>
+    <label>{{ t('password') }}<input type="password" name="password" autocomplete="new-password" minlength="6" required></label>
+    <button>{{ t('new_org_btn') }}</button>
+  </form>
+  <p class="login-alt">{{ t('have_account') }} <a href="{{ url_for('login', role='teacher') }}">{{ t('login_btn') }}</a></p>
+  <p class="muted login-foot">{% include "_lang.html" %}</p>
+</div>
+{% endblock %}

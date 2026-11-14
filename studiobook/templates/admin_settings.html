@@ -1,0 +1,62 @@
+{% extends "admin_base.html" %}
+{% block body %}
+<div class="pagehead"><div><h1>{{ t('nav_settings') }}</h1></div></div>
+<section class="card" style="max-width:600px">
+  <form method="post" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="row">
+      <label style="flex:1">{{ t('studio_name') }}<input name="studio_name" value="{{ name }}" placeholder="studiobook" maxlength="60"></label>
+      <label style="width:6rem">{{ t('currency') }}<input name="currency" value="{{ currency }}" maxlength="6"></label>
+    </div>
+    <label style="width:12rem">{{ t('cutoff_label') }}<input type="number" name="cutoff" min="0" max="168" value="{{ cutoff }}"></label>
+    <p class="muted">{{ t('cutoff_hint') }}</p>
+    <label style="width:12rem">{{ t('window_label') }}<input type="number" name="window_days" min="1" max="365" value="{{ window_days }}"></label>
+    <p class="muted">{{ t('window_hint') }}</p>
+    <button>{{ t('save') }}</button>
+  </form>
+</section>
+<section class="card flat" style="max-width:600px">
+  <h2>{{ t('member_page') }}</h2>
+  <p class="muted">{{ t('member_page_hint') }}</p>
+  <p class="code" style="margin-top:.5rem">{{ request.host_url }}me/login</p>
+  <p class="muted" style="margin-top:.5rem">{{ t('install_hint') }}</p>
+</section>
+
+{% if multi_tenant %}
+<section class="card" style="max-width:600px">
+  <h2>{{ t('admin_account') }}</h2>
+  <form method="post" action="{{ url_for('admin_password_change') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label style="width:16rem">{{ t('new_password') }}
+      <input type="password" name="new_password" minlength="6" autocomplete="new-password" required></label>
+    <button>{{ t('change_password') }}</button>
+  </form>
+</section>
+
+<section class="card" style="max-width:600px">
+  <h2>{{ t('team') }}</h2>
+  <p class="muted">{{ t('team_hint') }}</p>
+  <ul class="teamlist">
+    {% for a in team_admins %}
+    <li>
+      <span>{{ a.email }}{% if a.id == me_admin_id %} <em>{{ t('you') }}</em>{% endif %}</span>
+      {% if a.id != me_admin_id %}
+      <form method="post" action="{{ url_for('admin_team_remove', admin_id=a.id) }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="ghost sm">{{ t('remove') }}</button>
+      </form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{{ url_for('admin_team_add') }}" class="stack" style="margin-top:.8rem">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="row">
+      <label style="flex:1">{{ t('admin_email') }}<input type="email" name="email" required></label>
+      <label style="flex:1">{{ t('password') }}<input type="password" name="password" minlength="6" required></label>
+    </div>
+    <button>{{ t('invite_admin') }}</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

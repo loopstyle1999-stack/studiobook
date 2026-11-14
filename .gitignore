@@ -4,3 +4,14 @@ __pycache__/
 .venv/
 dist/
 *.egg-info/
+
+# local data and secrets - never commit these
+admin-password.txt
+registry.db
+tenants/
+*.sqlite
+.pytest_cache/
+
+# local screenshots / scratch files
+preview.html
+*-sheet.jpg

@@ -1,0 +1,37 @@
+{% extends "base_public.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+<div class="who" style="margin:.2rem 0 1rem">{{ avatar(d.member.name, true) }}<div><h1>{{ d.member.name }}</h1><p class="muted">{{ d.member.email }}</p></div></div>
+<h3>{{ t('my_plans') }}</h3>
+{% for p in d.plans %}
+<div class="planbox {{ '' if p.active_now else 'off' }}">
+  <small>{{ p.name }}</small>
+  <div class="big">{% if p.kind == 'unlimited' %}&infin;{% else %}{{ t('credits_n', n=p.credits_left) }}{% endif %}</div>
+  <small>{% if p.expires_on %}{{ t('valid_until', date=p.expires_on) }}{% else %}{{ t('no_expiry') }}{% endif %}</small>
+</div>
+{% else %}<div class="empty">{{ t('no_active_plan') }}</div>{% endfor %}
+
+<h3>{{ t('details') }}</h3>
+<form method="post" action="{{ url_for('member_profile') }}" class="card stack">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>{{ t('name') }}<input name="name" value="{{ d.member.name }}" required></label>
+  <label>{{ t('phone') }}<input name="phone" value="{{ d.member.phone }}"></label>
+  <button>{{ t('save') }}</button>
+</form>
+<h3>{{ t('change_password') }}</h3>
+<form method="post" action="{{ url_for('member_password') }}" class="card stack">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>{{ t('new_password') }}<input type="password" name="password" minlength="6" autocomplete="new-password" required></label>
+  <p class="muted">{{ t('password_hint') }}</p>
+  <button class="ghost">{{ t('save') }}</button>
+</form>
+<h3>{{ t('credit_history') }}</h3>
+<div class="card list">
+{% for l in d.log %}<div><span class="grow">{{ l.created_at[:10] }} &nbsp;{{ t('r_' + l.reason) }}</span><b>{{ '%+d' % l.delta }}</b></div>{% else %}<div class="muted">{{ t('nothing_here') }}</div>{% endfor %}
+</div>
+<h3>{{ t('language') }}</h3>
+<p>{% include "_lang.html" %}</p>
+<p class="muted" style="margin-top:.8rem">{{ t('install_hint_member') }}</p>
+<form method="post" action="{{ url_for('member_logout') }}" style="margin-top:1.2rem"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="ghost block">{{ t('logout') }}</button></form>
+{% endblock %}
+{% block tabbar %}{% include "_tabbar.html" %}{% endblock %}

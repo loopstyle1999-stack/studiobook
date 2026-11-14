@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ studio_name }}</title>
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="{{ studio_name }}">
+<link rel="manifest" href="{{ url_for('manifest') }}">
+<link rel="icon" href="{{ url_for('static', filename='icon-192.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+<header class="top"><div class="in">
+  <a class="brand" href="{{ url_for('index') }}"><i></i>{{ brand }}</a>
+  <div class="row center" style="gap:.6rem">{% block topright %}{% endblock %}</div>
+</div></header>
+{% if multi_tenant and my_groups %}
+<div class="groupbar"><div class="in">
+  <span>{{ t('my_class') }}</span>
+  <b>{{ current_group.name if current_group }}</b>
+  {% if my_groups|length > 1 %}
+  <div class="gswitch">
+    {% for g in my_groups %}
+    <a href="{{ url_for('switch_group', group_id=g.id) }}" class="{{ 'on' if current_group and g.id == current_group.id }}">{{ g.name }}</a>
+    {% endfor %}
+    <a href="{{ url_for('join_group') }}" class="add">+</a>
+  </div>
+  {% else %}
+  <a class="gadd" href="{{ url_for('join_group') }}">+ {{ t('join_btn') }}</a>
+  {% endif %}
+</div></div>
+{% endif %}
+<main class="narrow">
+  {% include "_flash.html" %}
+  {% block body %}{% endblock %}
+</main>
+{% block tabbar %}{% endblock %}
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

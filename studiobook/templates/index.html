@@ -1,26 +1,16 @@
-<!doctype html>
-<html lang="{{ lang }}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>studiobook</title>
-<style>
-  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
-  .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; margin: .75rem 0; display: flex; justify-content: space-between; }
-  .full { color: #b00; }
-  .lang { font-size: .9rem; color: #666; }
-</style>
-</head>
-<body>
-<p class="lang">{% for code, label in languages.items() %}<a href="?lang={{ code }}">{{ label }}</a>{% if not loop.last %} | {% endif %}{% endfor %}</p>
-<h1>{{ t('title') }}</h1>
-{% for c in classes %}
-<div class="card">
-  <div><strong>{{ c.title }}</strong><br>{{ c.starts_at }}</div>
-  <div class="{{ 'full' if c.seats_left == 0 }}">{{ t('seats', left=c.seats_left, capacity=c.capacity) }}{% if c.seats_left == 0 and c.waitlist_size %}<br>{{ t('waitlist', n=c.waitlist_size) }}{% endif %}</div>
-</div>
-{% else %}
-<p>{{ t('empty') }} <code>POST /api/classes</code></p>
-{% endfor %}
-</body>
-</html>
+{% extends "base_public.html" %}
+{% block topright %}<a class="btn sm" href="{{ url_for('login') }}">{{ t('sign_in') }}</a>{% endblock %}
+{% block body %}
+<div class="hero"><h1>{{ studio_name }}</h1><p>{{ t('public_hint') }}</p></div>
+{% for day, classes in days.items() %}
+  <div class="dayhead">{{ day_label(day) }}</div>
+  {% for c in classes %}
+  <div class="cls" style="--c:{{ c.color }}">
+    <div class="time">{{ hhmm(c.starts_at) }}<small>{{ t('minutes', n=c.duration_min) }}</small></div>
+    <div class="meta"><b>{{ c.title }}</b><small>{{ c.instructor }}</small></div>
+    <span class="pill {{ 'bad' if c.seats_left == 0 else 'brand' }}">{{ t('seats', left=c.seats_left, capacity=c.capacity) }}</span>
+  </div>
+  {% endfor %}
+{% else %}<div class="empty">{{ t('no_classes_yet') }}</div>{% endfor %}
+<p class="muted" style="text-align:center;margin-top:2rem">{% include "_lang.html" %} &middot; <a href="{{ url_for('admin_login') }}">{{ t('admin_link') }}</a></p>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+<div class="pagehead">
+  <div><h1>{{ t('nav_dashboard') }}</h1><p class="muted">{{ t('today') }} &middot; {{ day_label(d.today) }}</p></div>
+  <div class="row"><a class="btn" href="{{ url_for('admin_schedule') }}">{{ t('add_class') }}</a><a class="btn ghost" href="{{ url_for('admin_members') }}">{{ t('add_member') }}</a></div>
+</div>
+{% if multi_tenant %}
+<div class="codecard">
+  <div class="codecard-h"><span>{{ t('group_code') }}</span><b>{{ join_code }}</b></div>
+  <p class="muted">{{ t('group_code_hint') }}</p>
+</div>
+{% endif %}
+<div class="grid kpis">
+  <div class="card kpi"><div class="n">{{ d.today_classes|length }}</div><div class="l">{{ t('kpi_today_classes') }}</div></div>
+  <div class="card kpi"><div class="n">{{ d.today_bookings }}</div><div class="l">{{ t('kpi_today_bookings') }}</div></div>
+  <div class="card kpi"><div class="n">{{ d.week_fill }}%</div><div class="l">{{ t('kpi_week_fill') }}</div></div>
+  <div class="card kpi"><div class="n">{{ money(d.revenue_month) }}</div><div class="l">{{ t('kpi_revenue_month') }}</div></div>
+  <div class="card kpi"><div class="n">{{ d.member_count }}</div><div class="l">{{ t('kpi_members') }}</div></div>
+</div>
+<div class="grid two">
+  <section class="card">
+    <h2>{{ t('today_schedule') }} <a class="btn ghost sm" href="{{ url_for('admin_today') }}">{{ t('nav_today') }}</a></h2>
+    <div class="list">
+    {% for c in d.today_classes %}
+      <a class="item" href="{{ url_for('admin_class', class_id=c.id) }}">
+        <span class="grow"><span class="dot" style="--c:{{ c.color }}"></span><b>{{ hhmm(c.starts_at) }}</b> &nbsp;{{ c.title }}{% if c.instructor %} <span class="muted">&middot; {{ c.instructor }}</span>{% endif %}</span>
+        <span class="pill {{ 'bad' if c.seats_left == 0 else 'brand' }}">{{ c.booked }} / {{ c.capacity }}</span>
+      </a>
+    {% else %}<div class="empty">{{ t('no_classes_today') }}</div>{% endfor %}
+    </div>
+  </section>
+  <div>
+    <section class="card">
+      <h2>{{ t('attention_waitlist') }}</h2>
+      <div class="list">
+      {% for c in d.waitlisted_classes %}
+        <a class="item" href="{{ url_for('admin_class', class_id=c.id) }}"><span class="grow">{{ c.starts_at[5:10] }} {{ hhmm(c.starts_at) }} &nbsp;{{ c.title }}</span><span class="pill warn">{{ t('waitlist_n', n=c.waitlist_size) }}</span></a>
+      {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endfor %}
+      </div>
+    </section>
+    <section class="card">
+      <h2>{{ t('attention_credits') }}</h2>
+      <div class="list">
+      {% for m in d.low_credit %}
+        <a class="item" href="{{ url_for('admin_member', member_id=m.id) }}"><span class="grow who">{{ avatar(m.name) }}<span>{{ m.name }}</span></span><span class="pill {{ 'bad' if m.credits == 0 else 'warn' }}">{{ m.credits }}</span></a>
+      {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endfor %}
+      </div>
+    </section>
+    <section class="card">
+      <h2>{{ t('attention_expiring') }}</h2>
+      <div class="list">
+      {% for m in d.expiring %}
+        <a class="item" href="{{ url_for('admin_member', member_id=m.id) }}"><span class="grow who">{{ avatar(m.name) }}<span>{{ m.name }}</span></span><span class="pill warn">{{ (m.expires or m.until)[5:] }}</span></a>
+      {% else %}<div class="empty">{{ t('nothing_here') }}</div>{% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

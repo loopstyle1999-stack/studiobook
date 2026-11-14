@@ -1,0 +1,1 @@
+<span class="langs">{% for code, label in languages.items() %}<a href="{{ lang_url(code) }}"{% if code == lang %} class="on"{% endif %}>{{ label }}</a>{% endfor %}</span>

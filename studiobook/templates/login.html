@@ -1,0 +1,45 @@
+{% extends "base_public.html" %}
+{% block body %}
+<div class="login card">
+  <div class="roles">
+    <a class="role{{ ' on' if role == 'student' }}" href="{{ url_for('login', role='student') }}">{{ t('role_student') }}</a>
+    <a class="role{{ ' on' if role == 'teacher' }}" href="{{ url_for('login', role='teacher') }}">{{ t('role_teacher') }}</a>
+  </div>
+
+  {% if role == 'teacher' %}
+    <h1>{{ t('login_title') }}</h1>
+    <p class="muted login-hint">{{ t('teacher_login_hint') }}</p>
+    {% if error %}<div class="flash error">{{ t(error) }}</div>{% endif %}
+    {% if not admin_ready %}
+      <div class="note"><b>{{ t('admin_disabled') }}</b><br>{{ t('admin_disabled_hint') }}</div>
+    {% else %}
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="role" value="teacher">
+      <label>{{ t('email') }}<input type="email" name="email" autocomplete="username" autofocus required></label>
+      <label>{{ t('password') }}<input type="password" name="password" autocomplete="current-password" required></label>
+      <button>{{ t('login_btn') }}</button>
+    </form>
+    {% if multi_tenant %}
+    <p class="login-alt"><a href="{{ url_for('new_org') }}">{{ t('new_org_link') }}</a></p>
+    {% endif %}
+    {% endif %}
+  {% else %}
+    <h1>{{ t('member_login') }}</h1>
+    <p class="muted login-hint">{{ t('member_login_hint') }}</p>
+    {% if error %}<div class="flash error">{{ t(error) }}</div>{% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="role" value="student">
+      <label>{{ t('email') }}<input type="email" name="email" autocomplete="username" autofocus required></label>
+      <label>{{ t('password') }}<input type="password" name="password" autocomplete="current-password" required></label>
+      <button>{{ t('login_btn') }}</button>
+    </form>
+    {% if multi_tenant %}
+    <p class="login-alt">{{ t('no_account') }} <a href="{{ url_for('register') }}">{{ t('register_link') }}</a></p>
+    {% endif %}
+  {% endif %}
+
+  <p class="muted login-foot">{% include "_lang.html" %}</p>
+</div>
+{% endblock %}

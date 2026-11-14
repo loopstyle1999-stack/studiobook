@@ -1,0 +1,16 @@
+{% macro icon(name) -%}
+<svg viewBox="0 0 24 24" aria-hidden="true">
+{%- if name == 'home' %}<path d="M3 11l9-8 9 8M5 10v10h14V10"/>
+{%- elif name == 'calendar' %}<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+{%- elif name == 'users' %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6M17 4.5a3.5 3.5 0 010 7M21.5 20c0-2.6-1.6-4.7-4-5.6"/>
+{%- elif name == 'settings' %}<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>
+{%- elif name == 'today' %}<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>
+{%- elif name == 'chart' %}<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+{%- elif name == 'tag' %}<path d="M3 12V4h8l10 10-8 8L3 12z"/><circle cx="7.5" cy="8.5" r="1"/>
+{%- elif name == 'ticket' %}<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M9 6v12"/>
+{%- elif name == 'user' %}<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/>
+{%- endif %}</svg>
+{%- endmacro %}
+{% macro avatar(name, big=false) -%}
+<span class="avatar{{ ' lg' if big }}" style="--h:{{ hue(name) }}">{{ initials(name) }}</span>
+{%- endmacro %}

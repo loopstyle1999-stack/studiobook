@@ -1,0 +1,49 @@
+{% extends "admin_base.html" %}
+{% from "_icons.html" import avatar %}
+{% block body %}
+<div class="pagehead">
+  <div><h1>{{ t('nav_members') }}</h1><p class="muted">{{ members|length }}</p></div>
+  <div class="row center">
+    <form method="get" class="row center" style="gap:.4rem"><input type="hidden" name="filter" value="{{ flt }}"><input type="search" name="q" value="{{ q }}" placeholder="{{ t('search') }}"></form>
+    <a class="btn ghost" href="{{ url_for('admin_export_members') }}">{{ t('export_csv') }}</a>
+    <button data-open="dlg-member">+ {{ t('add_member') }}</button>
+  </div>
+</div>
+<div class="seg" style="margin-bottom:1rem">
+  {% for key in ('all', 'low', 'expiring', 'inactive', 'new') %}<a href="{{ url_for('admin_members', filter=key, q=q) }}" class="{{ 'on' if flt == key }}">{{ t('f_' + key) }}</a>{% endfor %}
+</div>
+<dialog id="dlg-member">
+  <div class="dhead"><h2 style="margin:0">{{ t('add_member') }}</h2><button class="x" data-close type="button">&times;</button></div>
+  <div class="dbody">
+  <form method="post" action="{{ url_for('admin_add_member') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="row"><label style="flex:1">{{ t('name') }}<input name="name" required></label><label style="flex:1">{{ t('phone') }}<input name="phone"></label></div>
+    <label>{{ t('email') }}<input type="email" name="email" required></label>
+    <label style="width:9rem">{{ t('starting_credits') }}<input type="number" name="credits" min="0" value="0"></label>
+    <p class="muted">{{ t('code_hint') }}</p>
+    <div class="row between"><span></span><button>{{ t('add') }}</button></div>
+  </form>
+  </div>
+</dialog>
+<section class="card tablewrap">
+  {% if members %}
+  <table>
+    <tr><th>{{ t('name') }}</th><th>{{ t('membership') }}</th><th>{{ t('upcoming') }}</th><th>{{ t('last_visit') }}</th><th>{{ t('visits') }}</th><th></th></tr>
+    {% for m in members %}
+    <tr>
+      <td><div class="who">{{ avatar(m.name) }}<span><a href="{{ url_for('admin_member', member_id=m.id) }}"><b>{{ m.name }}</b></a><span class="muted" style="display:block">{{ m.email }}{% if m.phone %} &middot; {{ m.phone }}{% endif %}</span></span></div></td>
+      <td>
+        {% if m.unlimited %}<span class="pill ok">{{ t('unlimited') }}{% if m.until %} &middot; {{ m.until[5:] }}{% endif %}</span>{% endif %}
+        {% if m.credits or not m.unlimited %}<span class="pill {{ 'bad' if m.credits == 0 else ('warn' if m.credits == 1 else 'ok') }}">{{ t('credits_n', n=m.credits) }}</span>{% endif %}
+        {% if m.expires %}<span class="muted nowrap">{{ t('expires_on', date=m.expires[5:]) }}</span>{% endif %}
+      </td>
+      <td>{{ m.upcoming }}</td>
+      <td class="muted nowrap">{{ m.last_visit[:10] if m.last_visit else '-' }}</td>
+      <td>{{ m.visits }}</td>
+      <td class="right"><a class="btn ghost sm" href="{{ url_for('admin_member', member_id=m.id) }}">{{ t('open') }}</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<div class="empty">{{ t('no_members') }}</div>{% endif %}
+</section>
+{% endblock %}

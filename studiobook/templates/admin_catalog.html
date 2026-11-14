@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+{% block body %}
+<div class="pagehead"><div><h1>{{ t('nav_catalog') }}</h1><p class="muted">{{ t('catalog_hint') }}</p></div></div>
+
+{% macro plan_form(p) %}
+<form method="post" action="{{ url_for('admin_save_plan') }}" class="row" style="padding:.6rem 0;border-bottom:1px solid var(--line)">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="plan_id" value="{{ p.id if p else '' }}">
+  <label style="flex:2;min-width:9rem">{{ t('name') }}<input name="name" value="{{ p.name if p else '' }}" required></label>
+  <label>{{ t('plan_kind') }}<select name="kind">{% for k in ('pack', 'unlimited', 'dropin') %}<option value="{{ k }}" {{ 'selected' if p and p.kind == k }}>{{ t('kind_' + k) }}</option>{% endfor %}</select></label>
+  <label style="width:5.5rem">{{ t('classes_n') }}<input type="number" name="credits" min="0" value="{{ p.credits if p else 10 }}"></label>
+  <label style="width:6rem">{{ t('valid_days') }}<input type="number" name="valid_days" min="0" value="{{ p.valid_days if p else 90 }}"></label>
+  <label style="width:6.5rem">{{ t('price') }} ({{ currency }})<input type="number" name="price" min="0" value="{{ p.price if p else 0 }}"></label>
+  <label class="check"><input type="checkbox" name="active" value="1" {{ 'checked' if not p or p.active }}> {{ t('active') }}</label>
+  <button class="{{ '' if not p else 'ghost' }} sm">{{ t('save') if p else t('add') }}</button>
+</form>
+{% endmacro %}
+<section class="card">
+  <h2>{{ t('plans') }}</h2>
+  <p class="muted" style="margin-bottom:.6rem">{{ t('plans_hint') }}</p>
+  {% for p in plans %}{{ plan_form(p) }}{% endfor %}
+  <h3>{{ t('new_plan') }}</h3>
+  {{ plan_form(none) }}
+</section>
+
+{% macro type_form(ty) %}
+<form method="post" action="{{ url_for('admin_save_type') }}" class="row" style="padding:.6rem 0;border-bottom:1px solid var(--line)">
+  <input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="type_id" value="{{ ty.id if ty else '' }}">
+  <label style="flex:2;min-width:9rem">{{ t('name') }}<input name="name" value="{{ ty.name if ty else '' }}" required></label>
+  <label>{{ t('color') }}<input type="color" name="color" value="{{ ty.color if ty else '#0f766e' }}"></label>
+  <label style="width:6rem">{{ t('duration') }}<input type="number" name="duration" min="5" max="600" value="{{ ty.duration_min if ty else 60 }}"></label>
+  <label style="width:6rem">{{ t('capacity') }}<input type="number" name="capacity" min="1" value="{{ ty.capacity if ty else 10 }}"></label>
+  <label class="check"><input type="checkbox" name="active" value="1" {{ 'checked' if not ty or ty.active }}> {{ t('active') }}</label>
+  <button class="{{ '' if not ty else 'ghost' }} sm">{{ t('save') if ty else t('add') }}</button>
+</form>
+{% endmacro %}
+<section class="card">
+  <h2>{{ t('class_types') }}</h2>
+  <p class="muted" style="margin-bottom:.6rem">{{ t('types_hint') }}</p>
+  {% for ty in types %}{{ type_form(ty) }}{% endfor %}
+  <h3>{{ t('new_type') }}</h3>
+  {{ type_form(none) }}
+</section>
+
+<section class="card">
+  <h2>{{ t('instructors') }}</h2>
+  <div class="list">
+  {% for i in instructors %}
+    <form method="post" action="{{ url_for('admin_toggle_instructor', instructor_id=i.id) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <span class="grow {{ '' if i.active else 'muted' }}">{{ i.name }}</span>
+      <button class="ghost sm">{{ t('deactivate') if i.active else t('activate') }}</button>
+    </form>
+  {% endfor %}
+  </div>
+  <form method="post" action="{{ url_for('admin_add_instructor') }}" class="row" style="margin-top:.8rem">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label style="flex:1">{{ t('name') }}<input name="name" required></label><button>{{ t('add') }}</button>
+  </form>
+</section>
+{% endblock %}

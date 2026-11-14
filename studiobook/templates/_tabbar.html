@@ -1,0 +1,6 @@
+{% from "_icons.html" import icon %}
+<nav class="tabbar"><div class="in">
+  <a href="{{ url_for('member_home') }}" class="{{ 'on' if tab == 'schedule' }}">{{ icon('calendar') }}{{ t('tab_schedule') }}</a>
+  <a href="{{ url_for('member_bookings') }}" class="{{ 'on' if tab == 'bookings' }}">{{ icon('ticket') }}{{ t('tab_bookings') }}</a>
+  <a href="{{ url_for('member_account') }}" class="{{ 'on' if tab == 'account' }}">{{ icon('user') }}{{ t('tab_account') }}</a>
+</div></nav>
