@@ -12,6 +12,7 @@ import hmac
 import json
 import os
 import secrets
+import time
 from datetime import datetime
 
 from flask import (Flask, Response, flash, has_request_context, redirect, render_template,
@@ -51,6 +52,30 @@ def _read_password_file(db_path: str = None):
         return None
 
 
+def _secret_key(db_path=None):
+    """Keep one signing key across restarts, otherwise every restart logs everyone out."""
+    env = os.environ.get("STUDIOBOOK_SECRET")
+    if env:
+        return env
+    if not db_path or db_path == ":memory:":
+        return secrets.token_hex(32)
+    path = os.path.join(os.path.dirname(os.path.abspath(db_path)), ".secret-key")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            stored = handle.read().strip()
+        if stored:
+            return stored
+    except OSError:
+        pass
+    value = secrets.token_hex(32)
+    try:
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(value)
+    except OSError:
+        pass
+    return value
+
+
 def create_app(db_path: str = None, admin_password: str = None, now=None) -> Flask:
     app = Flask(__name__)
     db_path = db_path or os.environ.get("STUDIOBOOK_DB", "studiobook.db")
@@ -58,7 +83,7 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
         admin_password = os.environ.get("STUDIOBOOK_ADMIN_PASSWORD") or None
         if not admin_password and db_path != ":memory:":
             admin_password = _read_password_file(db_path)
-    app.secret_key = os.environ.get("STUDIOBOOK_SECRET") or secrets.token_hex(32)
+    app.secret_key = _secret_key(db_path)
     app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True)
 
     multi = db_path != ":memory:"
@@ -103,6 +128,17 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
         registry = None
 
     app.config["STUDIO"] = studio
+
+    attempts = {}
+
+    def too_many(key):
+        now_ts = time.time()
+        recent = [t for t in attempts.get(key, []) if now_ts - t < 600]
+        attempts[key] = recent
+        return len(recent) >= 5
+
+    def note_failure(key):
+        attempts.setdefault(key, []).append(time.time())
 
     def password_ok(candidate):
         return bool(admin_password) and hmac.compare_digest(
@@ -210,9 +246,14 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
                 session.pop("admin", None)
                 return None
             return "e_locked" if outcome == "locked" else "bad_login"
+        email = (email or "").strip().lower()
+        if too_many("u:" + email):
+            return "e_locked"
         user = registry.verify_user(email, secret)
         if user is None:
+            note_failure("u:" + email)
             return "bad_login"
+        attempts.pop("u:" + email, None)
         session["user_id"] = user["id"]
         session.pop("admin", None)
         joined = registry.groups_for(user["id"])
@@ -232,9 +273,14 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
                 session.pop("member_id", None)
                 return "go_admin"
             return "bad_password"
-        admin_row = registry.verify_admin(request.form.get("email", ""), request.form.get("password", ""))
+        email = (request.form.get("email") or "").strip().lower()
+        if too_many("a:" + email):
+            return "e_locked"
+        admin_row = registry.verify_admin(email, request.form.get("password", ""))
         if admin_row is None:
+            note_failure("a:" + email)
             return "bad_login"
+        attempts.pop("a:" + email, None)
         session["admin"] = True
         session["admin_id"] = admin_row["id"]
         session["admin_group"] = admin_row["group_id"]
@@ -395,6 +441,22 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
             flash(translate(lang, "admin_removed"), "ok")
         return redirect(url_for("admin_settings"))
 
+    @app.post("/admin/members/<int:member_id>/password")
+    def admin_member_password(member_id):
+        if not session.get("admin"):
+            return redirect(url_for("login", role="teacher"))
+        if not multi:
+            return redirect(url_for("admin_member", member_id=member_id))
+        lang = current_lang()
+        link = registry.user_for_member(session["admin_group"], member_id)
+        if link is None:
+            flash(translate(lang, "e_no_account"), "error")
+        elif registry.set_user_password(link["user_id"], request.form.get("password", "")):
+            flash(translate(lang, "password_reset_done"), "ok")
+        else:
+            flash(translate(lang, "e_password"), "error")
+        return redirect(url_for("admin_member", member_id=member_id))
+
     # -------------------------------------------------------- leave a class
     @app.post("/leave/<int:group_id>")
     def leave_group(group_id):
@@ -439,7 +501,7 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
 
     api.register(app, studio, password_ok, bool(admin_password))
     admin.register(app, studio, password_ok, bool(admin_password))
-    portal.register(app, studio)
+    portal.register(app, studio, set_user_password=registry.set_user_password if registry else None)
     return app
 
 

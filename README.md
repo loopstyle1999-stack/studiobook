@@ -67,8 +67,8 @@ pip install -e . pytest
 python -m pytest -q
 ```
 
-81 tests: core booking rules, credits and waitlists, web flows, and multi-institution
-behaviour (isolation, class codes, joining, leaving, team management).
+87 tests: core booking rules, credits and waitlists, web flows, and multi-institution
+behaviour (isolation, class codes, joining, leaving, team management, password resets).
 
 ## Not included
 

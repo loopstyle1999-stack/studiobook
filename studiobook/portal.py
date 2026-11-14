@@ -2,12 +2,13 @@
 from datetime import date, timedelta
 from functools import wraps
 
-from flask import redirect, render_template, request, session, url_for
+from flask import flash, redirect, render_template, request, session, url_for
 
+from .i18n import translate
 from .web import current_lang, flash_result, redirect_back, to_int
 
 
-def register(app, studio):
+def register(app, studio, set_user_password=None):
     def member_page(view):
         @wraps(view)
         def wrapper(*args, **kwargs):
@@ -34,7 +35,9 @@ def register(app, studio):
 
     @app.post("/me/logout")
     def member_logout():
-        session.pop("member_id", None)
+        # clear the account too, not just the membership, or /join still thinks we are signed in
+        for key in ("member_id", "user_id", "group_id", "admin", "admin_id", "admin_group"):
+            session.pop(key, None)
         return redirect(url_for("index"))
 
     @app.get("/me")
@@ -162,5 +165,14 @@ def register(app, studio):
     @app.post("/me/password")
     @member_page
     def member_password(member_id):
-        flash_result(studio.set_password(member_id, request.form.get("password", "")), "password_saved")
+        new_password = request.form.get("password", "")
+        if set_user_password is not None and session.get("user_id"):
+            # the account password lives in the registry; the member row keeps a copy for old links
+            if set_user_password(session["user_id"], new_password):
+                studio.set_password(member_id, new_password)
+                flash(translate(current_lang(), "password_saved"), "ok")
+            else:
+                flash(translate(current_lang(), "e_password"), "error")
+        else:
+            flash_result(studio.set_password(member_id, new_password), "password_saved")
         return redirect(url_for("member_account"))

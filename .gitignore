@@ -7,6 +7,7 @@ dist/
 
 # local data and secrets - never commit these
 admin-password.txt
+.secret-key
 registry.db
 tenants/
 *.sqlite

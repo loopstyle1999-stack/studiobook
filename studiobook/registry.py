@@ -206,6 +206,13 @@ class Registry:
             "SELECT * FROM memberships WHERE user_id = ? AND group_id = ?", (user_id, group_id)
         ).fetchone()
 
+    def user_for_member(self, group_id, member_id):
+        return self.db.execute(
+            "SELECT m.*, u.email, u.name AS user_name FROM memberships m JOIN users u ON u.id = m.user_id "
+            "WHERE m.group_id = ? AND m.member_id = ?",
+            (group_id, member_id),
+        ).fetchone()
+
     def groups_for(self, user_id):
         return self.db.execute(
             "SELECT g.*, m.member_id, m.joined_at FROM memberships m JOIN groups g ON g.id = m.group_id "
