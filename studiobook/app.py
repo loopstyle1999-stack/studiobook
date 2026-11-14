@@ -12,6 +12,8 @@ import hmac
 import json
 import os
 import secrets
+import sqlite3
+import tempfile
 import time
 from datetime import datetime
 
@@ -169,6 +171,8 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
             my_groups=registry.groups_for(user["id"]) if (user and registry) else [],
             team_admins=registry.admins_of(group["id"]) if (registry and group and session.get("admin")) else [],
             me_admin_id=session.get("admin_id"),
+            me_admin_email=(registry.admin_by_id(session["admin_id"])["email"]
+                            if (registry and session.get("admin_id") and session.get("admin")) else ""),
             current_group=group,
             join_code=group["join_code"] if group else "",
             t=lambda key, **values: translate(lang, key, **values),
@@ -408,6 +412,49 @@ def create_app(db_path: str = None, admin_password: str = None, now=None) -> Fla
         else:
             flash(translate(lang, "password_changed"), "ok")
         return redirect(url_for("admin_settings"))
+
+    @app.post("/admin/account/email")
+    def admin_email_change():
+        if not session.get("admin"):
+            return redirect(url_for("login", role="teacher"))
+        lang = current_lang()
+        row = signed_in_admin()
+        if row is None:
+            return redirect(url_for("admin_settings"))
+        problem = registry.set_admin_email(row["id"], request.form.get("email", ""))
+        flash(translate(lang, "email_saved" if problem is None else problem),
+              "ok" if problem is None else "error")
+        return redirect(url_for("admin_settings"))
+
+    @app.get("/admin/backup")
+    def admin_backup():
+        """Download a consistent copy of this institution's database only."""
+        if not session.get("admin"):
+            return redirect(url_for("login", role="teacher"))
+        if not multi:
+            return redirect(url_for("admin_settings"))
+        group = registry.group_by_id(session.get("admin_group"))
+        if group is None:
+            return redirect(url_for("login", role="teacher"))
+        handle, temp_path = tempfile.mkstemp(suffix=".db")
+        os.close(handle)
+        try:
+            source = sqlite3.connect(registry.tenant_path(group))
+            target = sqlite3.connect(temp_path)
+            with target:
+                source.backup(target)
+            target.close()
+            source.close()
+            with open(temp_path, "rb") as opened:
+                payload = opened.read()
+        finally:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+        name = "studiobook-%s-%s.db" % (group["join_code"], datetime.now().strftime("%Y%m%d-%H%M"))
+        return Response(payload, mimetype="application/octet-stream",
+                        headers={"Content-Disposition": 'attachment; filename="%s"' % name})
 
     @app.post("/admin/team")
     def admin_team_add():

@@ -180,6 +180,18 @@ class Registry:
     def admin_by_id(self, admin_id):
         return self.db.execute("SELECT * FROM admins WHERE id = ?", (admin_id,)).fetchone()
 
+    def set_admin_email(self, admin_id, email):
+        email = (email or "").strip().lower()
+        if "@" not in email:
+            return "e_email"
+        taken = self.admin_by_email(email)
+        if taken and taken["id"] != admin_id:
+            return "e_email_taken"
+        with self.lock:
+            self.db.execute("UPDATE admins SET email = ? WHERE id = ?", (email, admin_id))
+            self.db.commit()
+        return None
+
     def set_admin_password(self, admin_id, password):
         if len(password or "") < 6:
             return False

@@ -14,11 +14,13 @@ between institutions.
 **Students** sign up with an e-mail and password, join a class by typing the code their
 teacher gave them, then book from a phone-first web app (installable to the home screen).
 They see a month calendar, filter by class type, book or join a waitlist, cancel, and
-track their credit packs and memberships.
+track their credit packs and memberships. Teachers can set a new password for a
+student who is locked out.
 
 **Teachers** sign in with their admin e-mail and password and get a dashboard: today's
 classes, check-in, a timeline week view, members, plans and sales, reports with CSV
-export, class types and instructors, and the class code to share.
+export, class types and instructors, the class code to share, and a one-click database
+backup of their own institution.
 
 **Languages:** English, Traditional Chinese, Simplified Chinese. Add `?lang=en`,
 `?lang=zh-Hant` or `?lang=zh-Hans` to any URL, or let the browser decide.
@@ -67,7 +69,7 @@ pip install -e . pytest
 python -m pytest -q
 ```
 
-87 tests: core booking rules, credits and waitlists, web flows, and multi-institution
+91 tests: core booking rules, credits and waitlists, web flows, and multi-institution
 behaviour (isolation, class codes, joining, leaving, team management, password resets).
 
 ## Not included

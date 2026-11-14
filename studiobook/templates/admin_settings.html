@@ -25,6 +25,13 @@
 {% if multi_tenant %}
 <section class="card" style="max-width:600px">
   <h2>{{ t('admin_account') }}</h2>
+  <form method="post" action="{{ url_for('admin_email_change') }}" class="stack">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label style="width:22rem">{{ t('admin_email') }}
+      <input type="email" name="email" value="{{ me_admin_email }}" required></label>
+    <button class="ghost">{{ t('save') }}</button>
+  </form>
+  <hr style="border:none;border-top:1px solid var(--line);margin:1rem 0">
   <form method="post" action="{{ url_for('admin_password_change') }}" class="stack">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label style="width:16rem">{{ t('new_password') }}
@@ -57,6 +64,12 @@
     </div>
     <button>{{ t('invite_admin') }}</button>
   </form>
+</section>
+
+<section class="card flat" style="max-width:600px">
+  <h2>{{ t('backup_title') }}</h2>
+  <p class="muted">{{ t('backup_hint') }}</p>
+  <p style="margin-top:.7rem"><a class="btn ghost" href="{{ url_for('admin_backup') }}">{{ t('download_backup') }}</a></p>
 </section>
 {% endif %}
 {% endblock %}

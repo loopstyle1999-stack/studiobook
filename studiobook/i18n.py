@@ -336,6 +336,10 @@ STRINGS = {
         "reset_password": "Set password",
         "password_reset_done": "Password updated for this student.",
         "e_no_account": "This member has not signed up yet, so there is no password to reset.",
+        "email_saved": "E-mail updated.",
+        "backup_title": "Data backup",
+        "backup_hint": "Download this institution's database. It holds students, bookings, credits and plans, so keep the file private.",
+        "download_backup": "Download backup",
     },
     "zh-Hant": {
         "access_code": "\u767b\u5165\u78bc",
@@ -665,6 +669,10 @@ STRINGS = {
         "reset_password": "設定密碼",
         "password_reset_done": "已更新這位學員的登入密碼。",
         "e_no_account": "這位會員還沒有註冊帳號，沒有密碼可重設。",
+        "email_saved": "信箱已更新。",
+        "backup_title": "資料備份",
+        "backup_hint": "下載這個機構的資料庫，裡面有學員、預約、課時和方案，請妥善保管。",
+        "download_backup": "下載備份",
     },
     "zh-Hans": {
         "access_code": "\u767b\u5f55\u7801",
@@ -994,6 +1002,10 @@ STRINGS = {
         "reset_password": "设置密码",
         "password_reset_done": "已更新该学员的登录密码。",
         "e_no_account": "这位会员还没有注册账号，没有密码可重置。",
+        "email_saved": "邮箱已更新。",
+        "backup_title": "数据备份",
+        "backup_hint": "下载这个机构的数据库，里面有学员、预约、课时和方案，请妥善保管。",
+        "download_backup": "下载备份",
     },
 }
 

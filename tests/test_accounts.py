@@ -162,3 +162,51 @@ class StudentAccountTests(TenantBase):
         # institution #1's member #1 must keep working with its own account
         page = outsider.get("/admin/members/1")
         self.assertEqual(page.status_code, 404)
+
+
+class BackupTests(TenantBase):
+    def test_backup_requires_sign_in(self):
+        self.assertEqual(self.app.test_client().get("/admin/backup").status_code, 302)
+
+    def test_backup_is_a_readable_database_of_this_institution(self):
+        import os
+        import sqlite3
+
+        client = self.app.test_client()
+        self.login(client, "admin@local", "secret", role="teacher")
+        response = client.get("/admin/backup")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data.startswith(b"SQLite format 3"))
+
+        path = os.path.join(self.folder, "downloaded.db")
+        with open(path, "wb") as handle:
+            handle.write(response.data)
+        conn = sqlite3.connect(path)
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        conn.close()
+        self.assertIn("classes", tables)
+        self.assertIn("members", tables)
+        self.assertNotIn("admins", tables, "the registry must never be inside a tenant backup")
+
+
+class EmailTests(TenantBase):
+    def test_admin_can_change_their_email(self):
+        client = self.app.test_client()
+        self.login(client, "admin@local", "secret", role="teacher")
+        token = self.csrf(client, "/admin/settings")
+        client.post("/admin/account/email", data={"email": "boss@yuedong.com", "csrf": token})
+
+        self.assertIsNotNone(self.registry.admin_by_email("boss@yuedong.com"))
+        fresh = self.app.test_client()
+        self.assertEqual(self.login(fresh, "boss@yuedong.com", "secret", role="teacher").status_code, 302)
+
+    def test_email_must_be_unique(self):
+        client = self.app.test_client()
+        self.login(client, "admin@local", "secret", role="teacher")
+        token = self.csrf(client, "/admin/settings")
+        client.post("/admin/team", data={"email": "mate@x.com", "password": "matepass", "csrf": token})
+
+        token = self.csrf(client, "/admin/settings")
+        page = client.post("/admin/account/email", data={"email": "mate@x.com", "csrf": token},
+                           follow_redirects=True).get_data(as_text=True)
+        self.assertIn("already registered", page)
